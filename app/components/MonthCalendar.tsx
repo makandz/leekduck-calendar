@@ -26,19 +26,49 @@ type EventSegment = {
   continuesRight: boolean;
 };
 
-const DISPLAY_LOCALE = "en-US";
 const EVENT_PILL_HEIGHT_PX = 28; // h-7
 const EVENT_LANE_GAP_PX = 6; // gap-1.5
 const EVENTS_TOP_OFFSET_PX = 48; // pt-12, leaves space for date header
 const CARD_VERTICAL_PADDING_PX = 24; // approx p-3 top+bottom
 const CARD_MIN_BASE_PX = 88; // baseline when no events
 
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
 function formatMonthLabel(date: Date): string {
-  return date.toLocaleString(DISPLAY_LOCALE, { month: "long", year: "numeric" });
+  return `${MONTH_LONG[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function formatWeekdayLabel(date: Date, variant: "short" | "narrow"): string {
-  return date.toLocaleString(DISPLAY_LOCALE, { weekday: variant });
+  const short = WEEKDAY_SHORT[date.getDay()];
+  return variant === "narrow" ? short.slice(0, 1) : short;
 }
 
 function isMidnightLocal(date: Date): boolean {
@@ -171,6 +201,60 @@ function EventBar({ seg }: { seg: EventSegment }) {
   );
 }
 
+function formatDayKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatMobileDayLabel(date: Date): string {
+  return `${WEEKDAY_SHORT[date.getDay()]}, ${MONTH_SHORT[date.getMonth()]} ${date.getDate()}`;
+}
+
+function MobileEventRow({
+  event,
+  day,
+}: {
+  event: CalendarEvent;
+  day: Date;
+}) {
+  const swatch = eventTypeToSwatch(event.eventType);
+  const { startDay, endDay } = eventDayRange(event);
+  const continuesLeft = diffDays(startDay, day) > 0;
+  const continuesRight = diffDays(day, endDay) > 0;
+
+  const title = `${continuesLeft ? "◀ " : ""}${event.title}${continuesRight ? " ▶" : ""}`;
+
+  return (
+    <a
+      href={event.href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10"
+      style={{
+        backgroundColor: swatch.background,
+        backgroundImage:
+          "linear-gradient(to bottom, rgba(255,255,255,0.10), rgba(0,0,0,0.18))",
+      }}
+      title={formatEventTooltip(event)}
+      aria-label={formatEventTooltip(event)}
+    >
+      <span
+        className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/15"
+        style={{ backgroundColor: swatch.accent }}
+        aria-hidden="true"
+      />
+      <span className="min-w-0 flex-1 truncate">{title}</span>
+      {event.eventType ? (
+        <span className="shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90">
+          {event.eventType.replaceAll("-", " ")}
+        </span>
+      ) : null}
+    </a>
+  );
+}
+
 export default function MonthCalendar({ events }: Props) {
   const [monthCursor, setMonthCursor] = useState<Date>(() => startOfMonth(new Date()));
 
@@ -196,6 +280,41 @@ export default function MonthCalendar({ events }: Props) {
       return intersectsRange(visibleRange, { start: startDay, end: endDay });
     });
   }, [events, gridStart, gridEnd]);
+
+  const monthDays = useMemo(() => {
+    const result: Date[] = [];
+    for (let cursor = monthStart; diffDays(cursor, monthEnd) >= 0; cursor = addDays(cursor, 1)) {
+      result.push(cursor);
+    }
+    return result;
+  }, [monthStart, monthEnd]);
+
+  const eventsByDayKey = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+
+    for (const day of monthDays) {
+      map.set(formatDayKey(day), []);
+    }
+
+    for (const event of visibleEvents) {
+      const { startDay, endDay } = eventDayRange(event);
+
+      const start = diffDays(startDay, monthStart) > 0 ? monthStart : startDay;
+      const end = diffDays(monthEnd, endDay) > 0 ? monthEnd : endDay;
+
+      for (let cursor = start; diffDays(cursor, end) >= 0; cursor = addDays(cursor, 1)) {
+        const key = formatDayKey(cursor);
+        const bucket = map.get(key);
+        if (bucket) bucket.push(event);
+      }
+    }
+
+    for (const bucket of map.values()) {
+      bucket.sort((a, b) => a.start.getTime() - b.start.getTime());
+    }
+
+    return map;
+  }, [visibleEvents, monthDays, monthStart, monthEnd]);
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-zinc-50 to-white text-zinc-900">
@@ -237,7 +356,66 @@ export default function MonthCalendar({ events }: Props) {
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">
-        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
+        <div className="sm:hidden">
+          <div className="space-y-3">
+            {monthDays.map((day) => {
+              const isToday = isSameDay(day, today);
+              const bucket = eventsByDayKey.get(formatDayKey(day)) ?? [];
+
+              return (
+                <section
+                  key={formatDayKey(day)}
+                  className={[
+                    "rounded-2xl bg-white p-4 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
+                    isToday ? "ring-2 ring-blue-500/70" : "",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={[
+                          "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold tabular-nums",
+                          isToday
+                            ? "bg-blue-500 text-white shadow-sm shadow-blue-500/20"
+                            : "bg-zinc-100 text-zinc-800",
+                        ].join(" ")}
+                      >
+                        {day.getDate()}
+                      </div>
+                      <div className="text-sm font-semibold text-zinc-900">
+                        {formatMobileDayLabel(day)}
+                      </div>
+                    </div>
+                    {bucket.length ? (
+                      <div className="text-xs font-semibold text-zinc-500">
+                        {bucket.length} {bucket.length === 1 ? "event" : "events"}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {bucket.length ? (
+                      bucket.map((event) => (
+                        <MobileEventRow
+                          key={`${formatDayKey(day)}:${event.id}`}
+                          event={event}
+                          day={day}
+                        />
+                      ))
+                    ) : (
+                      <div className="rounded-xl bg-zinc-50 px-3 py-3 text-sm font-medium text-zinc-500 ring-1 ring-zinc-200/70">
+                        No events
+                      </div>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="hidden sm:block">
+          <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
           {Array.from({ length: 7 }, (_, index) => {
             const day = addDays(gridStart, index);
             return (
@@ -250,9 +428,9 @@ export default function MonthCalendar({ events }: Props) {
               </div>
             );
           })}
-        </div>
+          </div>
 
-        <div className="mt-2 grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
+          <div className="mt-2 grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
           {weeks.map((week, weekIndex) => {
             const weekStart = week[0];
             const weekEnd = week[6];
@@ -337,6 +515,7 @@ export default function MonthCalendar({ events }: Props) {
               </div>
             );
           })}
+          </div>
         </div>
       </main>
     </div>
