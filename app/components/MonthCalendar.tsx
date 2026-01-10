@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CalendarEvent } from "../lib/leekduck";
-import { eventTypeToColor } from "../lib/colors";
+import { eventTypeToSwatch } from "../lib/colors";
 import {
   addDays,
   diffDays,
@@ -123,8 +123,27 @@ function buildWeekSegments(
   return lanes;
 }
 
+function formatEventTooltip(event: CalendarEvent): string {
+  const start = event.start.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const end = event.end.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const type = event.eventType ? `\nType: ${event.eventType}` : "";
+  return `${event.title}${type}\n${start} → ${end}`;
+}
+
 function EventBar({ seg }: { seg: EventSegment }) {
-  const backgroundColor = eventTypeToColor(seg.event.eventType);
+  const swatch = eventTypeToSwatch(seg.event.eventType);
 
   const title = `${seg.continuesLeft ? "◀ " : ""}${seg.event.title}${seg.continuesRight ? " ▶" : ""}`;
 
@@ -133,14 +152,28 @@ function EventBar({ seg }: { seg: EventSegment }) {
       href={seg.event.href}
       target="_blank"
       rel="noreferrer noopener"
-      className="pointer-events-auto mx-1 h-6 overflow-hidden rounded-full border border-white/15 px-2.5 text-[11px] font-medium leading-6 text-white shadow-sm ring-1 ring-black/10 brightness-100 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="group pointer-events-auto mx-1 flex h-7 items-center gap-2 overflow-hidden rounded-full border px-2.5 text-[11px] font-semibold leading-7 text-white shadow-sm ring-1 ring-black/10 transition will-change-transform hover:-translate-y-px hover:shadow-md hover:shadow-zinc-900/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       style={{
         gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`,
-        backgroundColor,
+        backgroundColor: swatch.background,
+        borderColor: "rgba(255,255,255,0.18)",
+        backgroundImage:
+          "linear-gradient(to bottom, rgba(255,255,255,0.10), rgba(0,0,0,0.18))",
       }}
-      title={seg.event.title}
+      title={formatEventTooltip(seg.event)}
+      aria-label={formatEventTooltip(seg.event)}
     >
-      <span className="block truncate">{title}</span>
+      <span
+        className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/15"
+        style={{ backgroundColor: swatch.accent }}
+        aria-hidden="true"
+      />
+      <span className="min-w-0 flex-1 truncate">{title}</span>
+      {seg.event.eventType ? (
+        <span className="hidden shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 group-hover:inline-flex">
+          {seg.event.eventType.replaceAll("-", " ")}
+        </span>
+      ) : null}
     </a>
   );
 }

@@ -1,17 +1,17 @@
-const KNOWN_EVENT_TYPE_COLORS: Record<string, string> = {
-  "community-day": "#7C3AED", // violet
-  "event": "#2563EB", // blue
-  "go-battle-league": "#0EA5E9", // sky
-  "go-pass": "#14B8A6", // teal
-  "max-battles": "#F97316", // orange
-  "max-mondays": "#EA580C", // orange dark
-  "pokemon-go-tour": "#E11D48", // rose
-  "pokemon-spotlight-hour": "#F59E0B", // amber
-  "pokestop-showcase": "#10B981", // emerald
-  "raid-battles": "#DC2626", // red
-  "raid-day": "#B91C1C", // red dark
-  "raid-hour": "#EF4444", // red light
-  "team-go-rocket": "#111827", // near-black
+const KNOWN_EVENT_TYPE_HUES: Record<string, number> = {
+  "community-day": 265, // violet
+  "event": 215, // blue
+  "go-battle-league": 200, // sky
+  "go-pass": 174, // teal
+  "max-battles": 24, // orange
+  "max-mondays": 18, // orange dark
+  "pokemon-go-tour": 346, // rose
+  "pokemon-spotlight-hour": 41, // amber
+  "pokestop-showcase": 152, // emerald
+  "raid-battles": 4, // red
+  "raid-day": 2, // red dark
+  "raid-hour": 6, // red light
+  "team-go-rocket": 222, // slate
 };
 
 function hashStringToInt(input: string): number {
@@ -23,13 +23,24 @@ function hashStringToInt(input: string): number {
 }
 
 export function eventTypeToColor(eventType?: string): string {
-  if (!eventType) return "#334155"; // slate
+  if (!eventType) return "hsl(215 25% 28%)"; // slate
 
   const normalized = eventType.trim().toLowerCase();
-  const known = KNOWN_EVENT_TYPE_COLORS[normalized];
-  if (known) return known;
-
-  const hue = hashStringToInt(normalized) % 360;
-  return `hsl(${hue} 70% 30%)`;
+  const hue = KNOWN_EVENT_TYPE_HUES[normalized] ?? (hashStringToInt(normalized) % 360);
+  return `hsl(${hue} 70% 28%)`;
 }
 
+export function eventTypeToSwatch(eventType?: string): {
+  background: string;
+  accent: string;
+} {
+  const normalized = eventType?.trim().toLowerCase();
+  const hue = normalized
+    ? (KNOWN_EVENT_TYPE_HUES[normalized] ?? (hashStringToInt(normalized) % 360))
+    : 215;
+
+  return {
+    background: `hsl(${hue} 70% 28%)`,
+    accent: `hsl(${hue} 92% 62%)`,
+  };
+}
