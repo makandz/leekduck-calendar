@@ -1,6 +1,6 @@
-import MonthCalendar from "./components/MonthCalendar";
-import { type CalendarEvent, fetchLeekduckEvents } from "./lib/leekduck";
-import { shouldIgnoreEvent } from "./lib/ignore";
+import MonthCalendar from "../components/MonthCalendar";
+import { type CalendarEvent, fetchLeekduckEvents } from "../lib/leekduck";
+import { shouldIgnoreEvent } from "../lib/ignore";
 
 export const dynamic = "force-dynamic";
 
