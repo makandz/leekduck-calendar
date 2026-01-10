@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CalendarEvent } from "../lib/leekduck";
 import { eventTypeToSwatch } from "../lib/colors";
 import {
   addDays,
@@ -13,6 +12,7 @@ import {
   startOfWeek,
   toDayStart,
 } from "../lib/date";
+import type { CalendarEvent } from "../lib/leekduck";
 
 type Props = {
   events: CalendarEvent[];
@@ -92,15 +92,15 @@ function eventDayRange(event: CalendarEvent): { startDay: Date; endDay: Date } {
 
 function intersectsRange(
   range: { start: Date; end: Date },
-  target: { start: Date; end: Date },
+  target: { start: Date; end: Date }
 ): boolean {
-  return diffDays(range.start, target.end) >= 0 && diffDays(target.start, range.end) >= 0;
+  return (
+    diffDays(range.start, target.end) >= 0 &&
+    diffDays(target.start, range.end) >= 0
+  );
 }
 
-function clampToRange(
-  value: Date,
-  range: { start: Date; end: Date },
-): Date {
+function clampToRange(value: Date, range: { start: Date; end: Date }): Date {
   if (diffDays(value, range.start) > 0) return range.start;
   if (diffDays(range.end, value) > 0) return range.end;
   return value;
@@ -109,7 +109,7 @@ function clampToRange(
 function buildWeekSegments(
   weekStart: Date,
   weekEnd: Date,
-  events: CalendarEvent[],
+  events: CalendarEvent[]
 ): EventSegment[][] {
   const weekRange = { start: weekStart, end: weekEnd };
 
@@ -168,14 +168,16 @@ function formatEventTooltip(event: CalendarEvent): string {
 function EventBar({ seg }: { seg: EventSegment }) {
   const swatch = eventTypeToSwatch(seg.event.eventType);
 
-  const title = `${seg.continuesLeft ? "◀ " : ""}${seg.event.title}${seg.continuesRight ? " ▶" : ""}`;
+  const title = `${seg.continuesLeft ? "◀ " : ""}${seg.event.title}${
+    seg.continuesRight ? " ▶" : ""
+  }`;
 
   return (
     <a
       href={seg.event.href}
       target="_blank"
       rel="noreferrer noopener"
-      className="group pointer-events-auto mx-1 flex h-7 items-center gap-2 overflow-hidden rounded-full border px-2.5 text-[11px] font-semibold leading-7 text-white shadow-sm ring-1 ring-black/10 transition will-change-transform hover:-translate-y-px hover:shadow-md hover:shadow-zinc-900/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="group pointer-events-auto mx-1 flex h-7 items-center gap-2 overflow-hidden rounded-full border px-2.5 text-[11px] font-semibold leading-7 text-white shadow-sm ring-1 ring-black/10 transition will-change-transform hover:-translate-y-px hover:shadow-md hover:shadow-zinc-900/15 focus-visible:ring-2 focus-visible:ring-sky-500"
       style={{
         gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`,
         backgroundColor: swatch.background,
@@ -209,29 +211,27 @@ function formatDayKey(date: Date): string {
 }
 
 function formatMobileDayLabel(date: Date): string {
-  return `${WEEKDAY_SHORT[date.getDay()]}, ${MONTH_SHORT[date.getMonth()]} ${date.getDate()}`;
+  return `${WEEKDAY_SHORT[date.getDay()]}, ${
+    MONTH_SHORT[date.getMonth()]
+  } ${date.getDate()}`;
 }
 
-function MobileEventRow({
-  event,
-  day,
-}: {
-  event: CalendarEvent;
-  day: Date;
-}) {
+function MobileEventRow({ event, day }: { event: CalendarEvent; day: Date }) {
   const swatch = eventTypeToSwatch(event.eventType);
   const { startDay, endDay } = eventDayRange(event);
   const continuesLeft = diffDays(startDay, day) > 0;
   const continuesRight = diffDays(day, endDay) > 0;
 
-  const title = `${continuesLeft ? "◀ " : ""}${event.title}${continuesRight ? " ▶" : ""}`;
+  const title = `${continuesLeft ? "◀ " : ""}${event.title}${
+    continuesRight ? " ▶" : ""
+  }`;
 
   return (
     <a
       href={event.href}
       target="_blank"
       rel="noreferrer noopener"
-      className="flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10"
+      className="flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-black/10 focus-visible:ring-2 focus-visible:ring-sky-500"
       style={{
         backgroundColor: swatch.background,
         backgroundImage:
@@ -256,7 +256,9 @@ function MobileEventRow({
 }
 
 export default function MonthCalendar({ events }: Props) {
-  const [monthCursor, setMonthCursor] = useState<Date>(() => startOfMonth(new Date()));
+  const [monthCursor, setMonthCursor] = useState<Date>(() =>
+    startOfMonth(new Date())
+  );
 
   const today = useMemo(() => toDayStart(new Date()), []);
   const monthStart = useMemo(() => startOfMonth(monthCursor), [monthCursor]);
@@ -267,7 +269,11 @@ export default function MonthCalendar({ events }: Props) {
 
   const weeks = useMemo(() => {
     const result: Date[][] = [];
-    for (let cursor = gridStart; diffDays(cursor, gridEnd) >= 0; cursor = addDays(cursor, 7)) {
+    for (
+      let cursor = gridStart;
+      diffDays(cursor, gridEnd) >= 0;
+      cursor = addDays(cursor, 7)
+    ) {
       result.push(Array.from({ length: 7 }, (_, i) => addDays(cursor, i)));
     }
     return result;
@@ -283,7 +289,11 @@ export default function MonthCalendar({ events }: Props) {
 
   const monthDays = useMemo(() => {
     const result: Date[] = [];
-    for (let cursor = monthStart; diffDays(cursor, monthEnd) >= 0; cursor = addDays(cursor, 1)) {
+    for (
+      let cursor = monthStart;
+      diffDays(cursor, monthEnd) >= 0;
+      cursor = addDays(cursor, 1)
+    ) {
       result.push(cursor);
     }
     return result;
@@ -302,7 +312,11 @@ export default function MonthCalendar({ events }: Props) {
       const start = diffDays(startDay, monthStart) > 0 ? monthStart : startDay;
       const end = diffDays(monthEnd, endDay) > 0 ? monthEnd : endDay;
 
-      for (let cursor = start; diffDays(cursor, end) >= 0; cursor = addDays(cursor, 1)) {
+      for (
+        let cursor = start;
+        diffDays(cursor, end) >= 0;
+        cursor = addDays(cursor, 1)
+      ) {
         const key = formatDayKey(cursor);
         const bucket = map.get(key);
         if (bucket) bucket.push(event);
@@ -317,36 +331,44 @@ export default function MonthCalendar({ events }: Props) {
   }, [visibleEvents, monthDays, monthStart, monthEnd]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-zinc-50 to-white text-zinc-900">
-      <header className="sticky top-0 z-10 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+    <div className="flex min-h-screen flex-col bg-gradient-to-t from-sky-100 via-white to-white text-zinc-900">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_1px_1px,rgba(59,130,246,0.10)_1px,transparent_0)] [background-size:18px_18px]" />
+
+      <header className="sticky top-0 z-10 border-b border-sky-100 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:py-4">
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold tracking-tight text-zinc-950">
+            <h1 className="truncate text-xl font-extrabold tracking-tight text-zinc-950 sm:text-2xl">
               {formatMonthLabel(monthCursor)}
             </h1>
-            <p className="text-xs text-zinc-600">Leekduck events</p>
+            <p className="text-xs font-medium text-zinc-600">
+              Tap an event to open LeekDuck
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-md border border-zinc-300/70 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              onClick={() => setMonthCursor((d) => startOfMonth(addDays(d, -1)))}
+              className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50"
+              onClick={() =>
+                setMonthCursor((d) => startOfMonth(addDays(d, -1)))
+              }
               aria-label="Previous month"
             >
               Prev
             </button>
             <button
               type="button"
-              className="rounded-md border border-zinc-300/70 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="rounded-full bg-sky-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm shadow-sky-600/20 ring-1 ring-sky-700/40 hover:bg-sky-700"
               onClick={() => setMonthCursor(startOfMonth(new Date()))}
             >
               Today
             </button>
             <button
               type="button"
-              className="rounded-md border border-zinc-300/70 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              onClick={() => setMonthCursor((d) => startOfMonth(addDays(endOfMonth(d), 1)))}
+              className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50"
+              onClick={() =>
+                setMonthCursor((d) => startOfMonth(addDays(endOfMonth(d), 1)))
+              }
               aria-label="Next month"
             >
               Next
@@ -355,7 +377,7 @@ export default function MonthCalendar({ events }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:py-6">
         <div className="sm:hidden">
           <div className="space-y-3">
             {monthDays.map((day) => {
@@ -367,7 +389,9 @@ export default function MonthCalendar({ events }: Props) {
                   key={formatDayKey(day)}
                   className={[
                     "rounded-2xl bg-white p-4 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
-                    isToday ? "ring-2 ring-blue-500/70" : "",
+                    isToday
+                      ? "ring-2 ring-sky-500/60 shadow-sm shadow-sky-600/10"
+                      : "",
                   ].join(" ")}
                 >
                   <div className="flex items-center justify-between">
@@ -376,7 +400,7 @@ export default function MonthCalendar({ events }: Props) {
                         className={[
                           "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold tabular-nums",
                           isToday
-                            ? "bg-blue-500 text-white shadow-sm shadow-blue-500/20"
+                            ? "bg-sky-600 text-white shadow-sm shadow-sky-600/20"
                             : "bg-zinc-100 text-zinc-800",
                         ].join(" ")}
                       >
@@ -388,7 +412,8 @@ export default function MonthCalendar({ events }: Props) {
                     </div>
                     {bucket.length ? (
                       <div className="text-xs font-semibold text-zinc-500">
-                        {bucket.length} {bucket.length === 1 ? "event" : "events"}
+                        {bucket.length}{" "}
+                        {bucket.length === 1 ? "event" : "events"}
                       </div>
                     ) : null}
                   </div>
@@ -416,118 +441,133 @@ export default function MonthCalendar({ events }: Props) {
 
         <div className="hidden sm:block">
           <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
-          {Array.from({ length: 7 }, (_, index) => {
-            const day = addDays(gridStart, index);
-            return (
-              <div
-                key={index}
-                className="bg-zinc-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-600"
-              >
-                <span className="hidden sm:inline">{formatWeekdayLabel(day, "short")}</span>
-                <span className="sm:hidden">{formatWeekdayLabel(day, "narrow")}</span>
-              </div>
-            );
-          })}
+            {Array.from({ length: 7 }, (_, index) => {
+              const day = addDays(gridStart, index);
+              return (
+                <div
+                  key={index}
+                  className="bg-white px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-sky-700"
+                >
+                  <span className="hidden sm:inline">
+                    {formatWeekdayLabel(day, "short")}
+                  </span>
+                  <span className="sm:hidden">
+                    {formatWeekdayLabel(day, "narrow")}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="mt-2 grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
-          {weeks.map((week, weekIndex) => {
-            const weekStart = week[0];
-            const weekEnd = week[6];
-            const lanes = buildWeekSegments(weekStart, weekEnd, visibleEvents);
-            const perDayTotals = Array.from({ length: 7 }, (_, dayIndex) =>
-              lanes.reduce((count, lane) => {
-                const covers = lane.some(
-                  (seg) => seg.startCol <= dayIndex && dayIndex <= seg.endCol,
-                );
-                return count + (covers ? 1 : 0);
-              }, 0),
-            );
-            const visibleLaneCount = lanes.length;
-            const weekMinHeightPx = Math.max(
-              CARD_MIN_BASE_PX,
-              EVENTS_TOP_OFFSET_PX +
-                visibleLaneCount * EVENT_PILL_HEIGHT_PX +
-                Math.max(0, visibleLaneCount - 1) * EVENT_LANE_GAP_PX +
-                CARD_VERTICAL_PADDING_PX,
-            );
+          <div className="mt-3 grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
+            {weeks.map((week, weekIndex) => {
+              const weekStart = week[0];
+              const weekEnd = week[6];
+              const lanes = buildWeekSegments(
+                weekStart,
+                weekEnd,
+                visibleEvents
+              );
+              const perDayTotals = Array.from({ length: 7 }, (_, dayIndex) =>
+                lanes.reduce((count, lane) => {
+                  const covers = lane.some(
+                    (seg) => seg.startCol <= dayIndex && dayIndex <= seg.endCol
+                  );
+                  return count + (covers ? 1 : 0);
+                }, 0)
+              );
+              const visibleLaneCount = lanes.length;
+              const weekMinHeightPx = Math.max(
+                CARD_MIN_BASE_PX,
+                EVENTS_TOP_OFFSET_PX +
+                  visibleLaneCount * EVENT_PILL_HEIGHT_PX +
+                  Math.max(0, visibleLaneCount - 1) * EVENT_LANE_GAP_PX +
+                  CARD_VERTICAL_PADDING_PX
+              );
 
-            return (
-              <div key={weekIndex} className="relative bg-zinc-200">
-                <div className="grid grid-cols-7 gap-2 bg-zinc-200 p-2">
-                  {week.map((day, dayIndex) => {
-                    const inMonth =
-                      day.getFullYear() === monthStart.getFullYear() &&
-                      day.getMonth() === monthStart.getMonth();
-                    const isToday = isSameDay(day, today);
-                    const totalCount = perDayTotals[dayIndex];
+              return (
+                <div key={weekIndex} className="relative bg-zinc-200">
+                  <div className="grid grid-cols-7 gap-2 bg-zinc-200 p-2">
+                    {week.map((day, dayIndex) => {
+                      const inMonth =
+                        day.getFullYear() === monthStart.getFullYear() &&
+                        day.getMonth() === monthStart.getMonth();
+                      const isToday = isSameDay(day, today);
+                      const totalCount = perDayTotals[dayIndex];
 
-                    return (
-                      <div
-                        key={day.toISOString()}
-                        className={[
-                          "relative overflow-hidden rounded-xl bg-white p-3 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
-                          inMonth ? "text-zinc-900" : "bg-zinc-50 text-zinc-400",
-                          isToday ? "ring-2 ring-blue-500/70" : "",
-                        ].join(" ")}
-                        style={{ minHeight: `${weekMinHeightPx}px` }}
-                      >
-                        <div className="flex items-center justify-between pb-3">
-                          <div
-                            className={[
-                              "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
-                              isToday
-                                ? "bg-blue-500 text-white shadow-sm shadow-blue-500/20"
-                                : "text-zinc-700",
-                              inMonth ? "" : "opacity-60",
-                            ].join(" ")}
-                          >
-                            {day.getDate()}
+                      return (
+                        <div
+                          key={day.toISOString()}
+                          className={[
+                            "relative overflow-hidden rounded-2xl bg-white p-3 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
+                            inMonth
+                              ? "text-zinc-900"
+                              : "bg-zinc-50 text-zinc-400",
+                            isToday
+                              ? "ring-2 ring-sky-500/60 shadow-sm shadow-sky-600/10"
+                              : "",
+                          ].join(" ")}
+                          style={{ minHeight: `${weekMinHeightPx}px` }}
+                        >
+                          <div className="flex items-center justify-between pb-3">
+                            <div
+                              className={[
+                                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                                isToday
+                                  ? "bg-sky-600 text-white shadow-sm shadow-sky-600/20"
+                                  : "text-zinc-700",
+                                inMonth ? "" : "opacity-60",
+                              ].join(" ")}
+                            >
+                              {day.getDate()}
+                            </div>
                           </div>
-                        </div>
 
-                        {inMonth && totalCount === 0 ? (
-                          <div className="text-[11px] font-medium text-zinc-400">
-                            No events
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {lanes.length > 0 ? (
-                  <div className="pointer-events-none absolute inset-0 z-10 p-2 pt-12">
-                    <div className="flex flex-col gap-1.5">
-                      {lanes.map((lane, laneIndex) => (
-                        <div key={laneIndex} className="grid grid-cols-7 gap-2">
-                          {lane.map((seg) => (
-                            <EventBar
-                              key={`${seg.event.id}:${seg.startCol}:${seg.endCol}`}
-                              seg={seg}
-                            />
-                          ))}
+                          {inMonth && totalCount === 0 ? (
+                            <div className="text-[11px] font-medium text-zinc-400">
+                              No events
+                            </div>
+                          ) : null}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                ) : null}
-              </div>
-            );
-          })}
+
+                  {lanes.length > 0 ? (
+                    <div className="pointer-events-none absolute inset-0 z-10 p-2 pt-12">
+                      <div className="flex flex-col gap-1.5">
+                        {lanes.map((lane, laneIndex) => (
+                          <div
+                            key={laneIndex}
+                            className="grid grid-cols-7 gap-2"
+                          >
+                            {lane.map((seg) => (
+                              <EventBar
+                                key={`${seg.event.id}:${seg.startCol}:${seg.endCol}`}
+                                seg={seg}
+                              />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>
 
-      <footer className="border-t border-zinc-200/70 bg-white/70">
-        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+      <footer className="border-t border-sky-100/70 bg-white/40 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-4 py-4 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
           <div>
             Event data from{" "}
             <a
               href="https://leekduck.com"
               target="_blank"
               rel="noreferrer noopener"
-              className="font-medium text-zinc-800 underline underline-offset-2 hover:text-zinc-950"
+              className="font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-900"
             >
               LeekDuck
             </a>
@@ -539,7 +579,7 @@ export default function MonthCalendar({ events }: Props) {
               title="pokemon icons"
               target="_blank"
               rel="noreferrer noopener"
-              className="font-medium text-zinc-800 underline underline-offset-2 hover:text-zinc-950"
+              className="font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-900"
             >
               Pokemon icons created by Shahzama Ahmad - Flaticon
             </a>
