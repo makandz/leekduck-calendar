@@ -382,38 +382,57 @@ export default function MonthCalendar({ events }: Props) {
           <div className="space-y-3">
             {monthDays.map((day) => {
               const isToday = isSameDay(day, today);
+              const dayRelation = diffDays(day, today);
+              const isPast = dayRelation > 0;
+              const isFuture = dayRelation < 0;
               const bucket = eventsByDayKey.get(formatDayKey(day)) ?? [];
 
               return (
                 <section
                   key={formatDayKey(day)}
                   className={[
-                    "rounded-2xl bg-white p-4 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
+                    "rounded-2xl p-4 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
                     isToday
-                      ? "ring-2 ring-sky-500/60 shadow-sm shadow-sky-600/10"
-                      : "",
+                      ? "bg-sky-50 ring-2 ring-sky-500/50 shadow-sm shadow-sky-600/10"
+                      : isPast
+                        ? "bg-zinc-100/70 ring-zinc-300/70"
+                        : isFuture
+                          ? "bg-white"
+                          : "bg-white",
                   ].join(" ")}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="min-w-0">
                       <div
                         className={[
-                          "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold tabular-nums",
+                          "truncate text-sm font-extrabold tracking-tight",
                           isToday
-                            ? "bg-sky-600 text-white shadow-sm shadow-sky-600/20"
-                            : "bg-zinc-100 text-zinc-800",
+                            ? "text-sky-950"
+                            : isPast
+                              ? "text-zinc-700"
+                              : "text-zinc-900",
                         ].join(" ")}
                       >
-                        {day.getDate()}
-                      </div>
-                      <div className="text-sm font-semibold text-zinc-900">
                         {formatMobileDayLabel(day)}
                       </div>
+                      <div
+                        className={[
+                          "mt-0.5 text-xs font-semibold",
+                          isToday
+                            ? "text-sky-800"
+                            : isPast
+                              ? "text-zinc-500"
+                              : "text-zinc-600",
+                        ].join(" ")}
+                      >
+                        {bucket.length
+                          ? `${bucket.length} ${bucket.length === 1 ? "event" : "events"}`
+                          : "No events"}
+                      </div>
                     </div>
-                    {bucket.length ? (
-                      <div className="text-xs font-semibold text-zinc-500">
-                        {bucket.length}{" "}
-                        {bucket.length === 1 ? "event" : "events"}
+                    {isToday ? (
+                      <div className="shrink-0 rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-bold text-sky-800 ring-1 ring-sky-200/70">
+                        Today
                       </div>
                     ) : null}
                   </div>
@@ -493,30 +512,39 @@ export default function MonthCalendar({ events }: Props) {
                         day.getFullYear() === monthStart.getFullYear() &&
                         day.getMonth() === monthStart.getMonth();
                       const isToday = isSameDay(day, today);
+                      const dayRelation = diffDays(day, today);
+                      const isPast = dayRelation > 0;
+                      const isFuture = dayRelation < 0;
                       const totalCount = perDayTotals[dayIndex];
 
                       return (
                         <div
                           key={day.toISOString()}
                           className={[
-                            "relative overflow-hidden rounded-2xl bg-white p-3 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
+                            "relative overflow-hidden rounded-2xl p-3 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
                             inMonth
-                              ? "text-zinc-900"
+                              ? isToday
+                                ? "bg-sky-50 text-zinc-900 ring-2 ring-sky-500/50 shadow-sm shadow-sky-600/10"
+                                : isPast
+                                  ? "bg-zinc-100/70 text-zinc-900 ring-zinc-300/70"
+                                  : isFuture
+                                    ? "bg-white text-zinc-900"
+                                    : "bg-white text-zinc-900"
                               : "bg-zinc-50 text-zinc-400",
-                            isToday
-                              ? "ring-2 ring-sky-500/60 shadow-sm shadow-sky-600/10"
-                              : "",
                           ].join(" ")}
                           style={{ minHeight: `${weekMinHeightPx}px` }}
                         >
                           <div className="flex items-center justify-between pb-3">
                             <div
                               className={[
-                                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
-                                isToday
-                                  ? "bg-sky-600 text-white shadow-sm shadow-sky-600/20"
-                                  : "text-zinc-700",
-                                inMonth ? "" : "opacity-60",
+                                "text-sm font-extrabold tabular-nums tracking-tight",
+                                inMonth
+                                  ? isToday
+                                    ? "text-sky-950"
+                                    : isPast
+                                      ? "text-zinc-600"
+                                      : "text-zinc-900"
+                                  : "text-zinc-400",
                               ].join(" ")}
                             >
                               {day.getDate()}
