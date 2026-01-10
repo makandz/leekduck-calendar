@@ -518,6 +518,34 @@ export default function MonthCalendar({ events }: Props) {
           </div>
         </div>
       </main>
+
+      <footer className="border-t border-zinc-200/70 bg-white/70">
+        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            Event data from{" "}
+            <a
+              href="https://leekduck.com"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-medium text-zinc-800 underline underline-offset-2 hover:text-zinc-950"
+            >
+              LeekDuck
+            </a>
+            .
+          </div>
+          <div>
+            <a
+              href="https://www.flaticon.com/free-icons/pokemon"
+              title="pokemon icons"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-medium text-zinc-800 underline underline-offset-2 hover:text-zinc-950"
+            >
+              Pokemon icons created by Shahzama Ahmad - Flaticon
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
