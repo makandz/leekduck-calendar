@@ -26,12 +26,19 @@ type EventSegment = {
   continuesRight: boolean;
 };
 
+const DISPLAY_LOCALE = "en-US";
+const EVENT_PILL_HEIGHT_PX = 28; // h-7
+const EVENT_LANE_GAP_PX = 6; // gap-1.5
+const EVENTS_TOP_OFFSET_PX = 48; // pt-12, leaves space for date header
+const CARD_VERTICAL_PADDING_PX = 24; // approx p-3 top+bottom
+const CARD_MIN_BASE_PX = 88; // baseline when no events
+
 function formatMonthLabel(date: Date): string {
-  return date.toLocaleString(undefined, { month: "long", year: "numeric" });
+  return date.toLocaleString(DISPLAY_LOCALE, { month: "long", year: "numeric" });
 }
 
 function formatWeekdayLabel(date: Date, variant: "short" | "narrow"): string {
-  return date.toLocaleString(undefined, { weekday: variant });
+  return date.toLocaleString(DISPLAY_LOCALE, { weekday: variant });
 }
 
 function isMidnightLocal(date: Date): boolean {
@@ -124,22 +131,8 @@ function buildWeekSegments(
 }
 
 function formatEventTooltip(event: CalendarEvent): string {
-  const start = event.start.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  const end = event.end.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
   const type = event.eventType ? `\nType: ${event.eventType}` : "";
-  return `${event.title}${type}\n${start} → ${end}`;
+  return `${event.title}${type}`;
 }
 
 function EventBar({ seg }: { seg: EventSegment }) {
@@ -264,62 +257,83 @@ export default function MonthCalendar({ events }: Props) {
             const weekStart = week[0];
             const weekEnd = week[6];
             const lanes = buildWeekSegments(weekStart, weekEnd, visibleEvents);
+            const perDayTotals = Array.from({ length: 7 }, (_, dayIndex) =>
+              lanes.reduce((count, lane) => {
+                const covers = lane.some(
+                  (seg) => seg.startCol <= dayIndex && dayIndex <= seg.endCol,
+                );
+                return count + (covers ? 1 : 0);
+              }, 0),
+            );
+            const visibleLaneCount = lanes.length;
+            const weekMinHeightPx = Math.max(
+              CARD_MIN_BASE_PX,
+              EVENTS_TOP_OFFSET_PX +
+                visibleLaneCount * EVENT_PILL_HEIGHT_PX +
+                Math.max(0, visibleLaneCount - 1) * EVENT_LANE_GAP_PX +
+                CARD_VERTICAL_PADDING_PX,
+            );
 
             return (
               <div key={weekIndex} className="relative bg-zinc-200">
-                <div className="grid grid-cols-7 gap-px bg-zinc-200">
-                  {week.map((day) => {
+                <div className="grid grid-cols-7 gap-2 bg-zinc-200 p-2">
+                  {week.map((day, dayIndex) => {
                     const inMonth =
                       day.getFullYear() === monthStart.getFullYear() &&
                       day.getMonth() === monthStart.getMonth();
                     const isToday = isSameDay(day, today);
+                    const totalCount = perDayTotals[dayIndex];
 
                     return (
                       <div
                         key={day.toISOString()}
                         className={[
-                          "h-28 bg-white p-2.5",
-                          inMonth ? "text-zinc-900" : "text-zinc-400",
-                          isToday
-                            ? "ring-2 ring-inset ring-blue-500"
-                            : "ring-1 ring-inset ring-black/0",
+                          "relative overflow-hidden rounded-xl bg-white p-3 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
+                          inMonth ? "text-zinc-900" : "bg-zinc-50 text-zinc-400",
+                          isToday ? "ring-2 ring-blue-500/70" : "",
                         ].join(" ")}
+                        style={{ minHeight: `${weekMinHeightPx}px` }}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between pb-3">
                           <div
                             className={[
                               "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
-                              isToday ? "bg-blue-500 text-white" : "text-zinc-700",
+                              isToday
+                                ? "bg-blue-500 text-white shadow-sm shadow-blue-500/20"
+                                : "text-zinc-700",
                               inMonth ? "" : "opacity-60",
                             ].join(" ")}
                           >
                             {day.getDate()}
                           </div>
                         </div>
+
+                        {inMonth && totalCount === 0 ? (
+                          <div className="text-[11px] font-medium text-zinc-400">
+                            No events
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}
                 </div>
 
-                <div className="pointer-events-none absolute inset-0 pt-8">
-                  <div className="flex flex-col gap-1.5">
-                    {lanes.slice(0, 4).map((lane, laneIndex) => (
-                      <div
-                        key={laneIndex}
-                        className="grid grid-cols-7 gap-px"
-                      >
-                        {lane.map((seg) => (
-                          <EventBar key={`${seg.event.id}:${seg.startCol}:${seg.endCol}`} seg={seg} />
-                        ))}
-                      </div>
-                    ))}
-                    {lanes.length > 4 ? (
-                      <div className="px-2 text-[11px] font-medium text-zinc-500">
-                        +{lanes.length - 4} more
-                      </div>
-                    ) : null}
+                {lanes.length > 0 ? (
+                  <div className="pointer-events-none absolute inset-0 z-10 p-2 pt-12">
+                    <div className="flex flex-col gap-1.5">
+                      {lanes.map((lane, laneIndex) => (
+                        <div key={laneIndex} className="grid grid-cols-7 gap-2">
+                          {lane.map((seg) => (
+                            <EventBar
+                              key={`${seg.event.id}:${seg.startCol}:${seg.endCol}`}
+                              seg={seg}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
             );
           })}
