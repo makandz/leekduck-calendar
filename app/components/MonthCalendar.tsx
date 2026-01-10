@@ -1,0 +1,291 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import type { CalendarEvent } from "../lib/leekduck";
+import { eventTypeToColor } from "../lib/colors";
+import {
+  addDays,
+  diffDays,
+  endOfMonth,
+  endOfWeek,
+  isSameDay,
+  startOfMonth,
+  startOfWeek,
+  toDayStart,
+} from "../lib/date";
+
+type Props = {
+  events: CalendarEvent[];
+};
+
+type EventSegment = {
+  event: CalendarEvent;
+  startCol: number; // 0..6 (Sun..Sat)
+  endCol: number; // 0..6 (Sun..Sat)
+  continuesLeft: boolean;
+  continuesRight: boolean;
+};
+
+function formatMonthLabel(date: Date): string {
+  return date.toLocaleString(undefined, { month: "long", year: "numeric" });
+}
+
+function formatWeekdayLabel(date: Date, variant: "short" | "narrow"): string {
+  return date.toLocaleString(undefined, { weekday: variant });
+}
+
+function isMidnightLocal(date: Date): boolean {
+  return (
+    date.getHours() === 0 &&
+    date.getMinutes() === 0 &&
+    date.getSeconds() === 0 &&
+    date.getMilliseconds() === 0
+  );
+}
+
+function eventDayRange(event: CalendarEvent): { startDay: Date; endDay: Date } {
+  const startDay = toDayStart(event.start);
+  const endDayRaw = toDayStart(event.end);
+  const endDay =
+    isMidnightLocal(event.end) && diffDays(startDay, endDayRaw) >= 1
+      ? addDays(endDayRaw, -1)
+      : endDayRaw;
+  return { startDay, endDay };
+}
+
+function intersectsRange(
+  range: { start: Date; end: Date },
+  target: { start: Date; end: Date },
+): boolean {
+  return diffDays(range.start, target.end) >= 0 && diffDays(target.start, range.end) >= 0;
+}
+
+function clampToRange(
+  value: Date,
+  range: { start: Date; end: Date },
+): Date {
+  if (diffDays(value, range.start) > 0) return range.start;
+  if (diffDays(range.end, value) > 0) return range.end;
+  return value;
+}
+
+function buildWeekSegments(
+  weekStart: Date,
+  weekEnd: Date,
+  events: CalendarEvent[],
+): EventSegment[][] {
+  const weekRange = { start: weekStart, end: weekEnd };
+
+  const segments: EventSegment[] = [];
+  for (const event of events) {
+    const { startDay, endDay } = eventDayRange(event);
+    const eventRange = { start: startDay, end: endDay };
+    if (!intersectsRange(weekRange, eventRange)) continue;
+
+    const segStart = clampToRange(startDay, weekRange);
+    const segEnd = clampToRange(endDay, weekRange);
+    const startCol = diffDays(weekStart, segStart);
+    const endCol = diffDays(weekStart, segEnd);
+    if (startCol < 0 || endCol > 6 || startCol > endCol) continue;
+
+    segments.push({
+      event,
+      startCol,
+      endCol,
+      continuesLeft: diffDays(startDay, weekStart) > 0,
+      continuesRight: diffDays(weekEnd, endDay) > 0,
+    });
+  }
+
+  segments.sort((a, b) => {
+    if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+    return b.endCol - a.endCol;
+  });
+
+  const lanes: EventSegment[][] = [];
+  const laneEnd: number[] = [];
+  for (const seg of segments) {
+    let placed = false;
+    for (let laneIndex = 0; laneIndex < laneEnd.length; laneIndex++) {
+      if (seg.startCol > laneEnd[laneIndex]) {
+        lanes[laneIndex].push(seg);
+        laneEnd[laneIndex] = seg.endCol;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      lanes.push([seg]);
+      laneEnd.push(seg.endCol);
+    }
+  }
+
+  return lanes;
+}
+
+function EventBar({ seg }: { seg: EventSegment }) {
+  const backgroundColor = eventTypeToColor(seg.event.eventType);
+
+  const title = `${seg.continuesLeft ? "◀ " : ""}${seg.event.title}${seg.continuesRight ? " ▶" : ""}`;
+
+  return (
+    <a
+      href={seg.event.href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="pointer-events-auto h-5 overflow-hidden rounded-sm border border-black/10 px-2 text-[11px] leading-5 text-white shadow-sm brightness-100 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      style={{
+        gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`,
+        backgroundColor,
+      }}
+      title={seg.event.title}
+    >
+      <span className="block truncate">{title}</span>
+    </a>
+  );
+}
+
+export default function MonthCalendar({ events }: Props) {
+  const [monthCursor, setMonthCursor] = useState<Date>(() => startOfMonth(new Date()));
+
+  const today = useMemo(() => toDayStart(new Date()), []);
+  const monthStart = useMemo(() => startOfMonth(monthCursor), [monthCursor]);
+  const monthEnd = useMemo(() => endOfMonth(monthCursor), [monthCursor]);
+
+  const gridStart = useMemo(() => startOfWeek(monthStart), [monthStart]);
+  const gridEnd = useMemo(() => endOfWeek(monthEnd), [monthEnd]);
+
+  const weeks = useMemo(() => {
+    const result: Date[][] = [];
+    for (let cursor = gridStart; diffDays(cursor, gridEnd) >= 0; cursor = addDays(cursor, 7)) {
+      result.push(Array.from({ length: 7 }, (_, i) => addDays(cursor, i)));
+    }
+    return result;
+  }, [gridStart, gridEnd]);
+
+  const visibleEvents = useMemo(() => {
+    const visibleRange = { start: gridStart, end: gridEnd };
+    return events.filter((event) => {
+      const { startDay, endDay } = eventDayRange(event);
+      return intersectsRange(visibleRange, { start: startDay, end: endDay });
+    });
+  }, [events, gridStart, gridEnd]);
+
+  return (
+    <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900">
+      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold tracking-tight">
+              {formatMonthLabel(monthCursor)}
+            </h1>
+            <p className="text-xs text-zinc-600">
+              Leekduck events (click an event to open it)
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              onClick={() => setMonthCursor((d) => startOfMonth(addDays(d, -1)))}
+              aria-label="Previous month"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              onClick={() => setMonthCursor(startOfMonth(new Date()))}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              onClick={() => setMonthCursor((d) => startOfMonth(addDays(endOfMonth(d), 1)))}
+              aria-label="Next month"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-4">
+        <div className="grid grid-cols-7 gap-px rounded-lg border border-zinc-200 bg-zinc-200">
+          {Array.from({ length: 7 }, (_, index) => {
+            const day = addDays(gridStart, index);
+            return (
+              <div
+                key={index}
+                className="bg-zinc-100 px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-700"
+              >
+                <span className="hidden sm:inline">{formatWeekdayLabel(day, "short")}</span>
+                <span className="sm:hidden">{formatWeekdayLabel(day, "narrow")}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-px grid gap-px rounded-lg border border-zinc-200 bg-zinc-200">
+          {weeks.map((week, weekIndex) => {
+            const weekStart = week[0];
+            const weekEnd = week[6];
+            const lanes = buildWeekSegments(weekStart, weekEnd, visibleEvents);
+
+            return (
+              <div key={weekIndex} className="relative bg-zinc-200">
+                <div className="grid grid-cols-7 gap-px bg-zinc-200">
+                  {week.map((day) => {
+                    const inMonth =
+                      day.getFullYear() === monthStart.getFullYear() &&
+                      day.getMonth() === monthStart.getMonth();
+                    const isToday = isSameDay(day, today);
+
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        className={[
+                          "h-28 bg-white p-2",
+                          inMonth ? "text-zinc-900" : "text-zinc-400",
+                          isToday ? "ring-2 ring-inset ring-blue-500" : "",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-semibold tabular-nums">
+                            {day.getDate()}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pointer-events-none absolute inset-0 pt-7">
+                  <div className="flex flex-col gap-1 px-1">
+                    {lanes.slice(0, 4).map((lane, laneIndex) => (
+                      <div
+                        key={laneIndex}
+                        className="grid grid-cols-7 gap-px"
+                      >
+                        {lane.map((seg) => (
+                          <EventBar key={`${seg.event.id}:${seg.startCol}:${seg.endCol}`} seg={seg} />
+                        ))}
+                      </div>
+                    ))}
+                    {lanes.length > 4 ? (
+                      <div className="px-2 text-[11px] text-zinc-600">
+                        +{lanes.length - 4} more
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+}
