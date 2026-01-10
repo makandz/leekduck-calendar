@@ -133,7 +133,7 @@ function EventBar({ seg }: { seg: EventSegment }) {
       href={seg.event.href}
       target="_blank"
       rel="noreferrer noopener"
-      className="pointer-events-auto h-5 overflow-hidden rounded-sm border border-black/10 px-2 text-[11px] leading-5 text-white shadow-sm brightness-100 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="pointer-events-auto mx-1 h-6 overflow-hidden rounded-full border border-white/15 px-2.5 text-[11px] font-medium leading-6 text-white shadow-sm ring-1 ring-black/10 brightness-100 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       style={{
         gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`,
         backgroundColor,
@@ -172,22 +172,20 @@ export default function MonthCalendar({ events }: Props) {
   }, [events, gridStart, gridEnd]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-zinc-50/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-zinc-50 to-white text-zinc-900">
+      <header className="sticky top-0 z-10 border-b border-zinc-200/70 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold tracking-tight">
+            <h1 className="truncate text-lg font-semibold tracking-tight text-zinc-950">
               {formatMonthLabel(monthCursor)}
             </h1>
-            <p className="text-xs text-zinc-600">
-              Leekduck events (click an event to open it)
-            </p>
+            <p className="text-xs text-zinc-600">Leekduck events</p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="rounded-md border border-zinc-300/70 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               onClick={() => setMonthCursor((d) => startOfMonth(addDays(d, -1)))}
               aria-label="Previous month"
             >
@@ -195,14 +193,14 @@ export default function MonthCalendar({ events }: Props) {
             </button>
             <button
               type="button"
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="rounded-md border border-zinc-300/70 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               onClick={() => setMonthCursor(startOfMonth(new Date()))}
             >
               Today
             </button>
             <button
               type="button"
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="rounded-md border border-zinc-300/70 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm shadow-zinc-900/5 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               onClick={() => setMonthCursor((d) => startOfMonth(addDays(endOfMonth(d), 1)))}
               aria-label="Next month"
             >
@@ -212,14 +210,14 @@ export default function MonthCalendar({ events }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-4">
-        <div className="grid grid-cols-7 gap-px rounded-lg border border-zinc-200 bg-zinc-200">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">
+        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
           {Array.from({ length: 7 }, (_, index) => {
             const day = addDays(gridStart, index);
             return (
               <div
                 key={index}
-                className="bg-zinc-100 px-2 py-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-700"
+                className="bg-zinc-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-600"
               >
                 <span className="hidden sm:inline">{formatWeekdayLabel(day, "short")}</span>
                 <span className="sm:hidden">{formatWeekdayLabel(day, "narrow")}</span>
@@ -228,7 +226,7 @@ export default function MonthCalendar({ events }: Props) {
           })}
         </div>
 
-        <div className="mt-px grid gap-px rounded-lg border border-zinc-200 bg-zinc-200">
+        <div className="mt-2 grid gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm shadow-zinc-900/5">
           {weeks.map((week, weekIndex) => {
             const weekStart = week[0];
             const weekEnd = week[6];
@@ -247,13 +245,21 @@ export default function MonthCalendar({ events }: Props) {
                       <div
                         key={day.toISOString()}
                         className={[
-                          "h-28 bg-white p-2",
+                          "h-28 bg-white p-2.5",
                           inMonth ? "text-zinc-900" : "text-zinc-400",
-                          isToday ? "ring-2 ring-inset ring-blue-500" : "",
+                          isToday
+                            ? "ring-2 ring-inset ring-blue-500"
+                            : "ring-1 ring-inset ring-black/0",
                         ].join(" ")}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-semibold tabular-nums">
+                          <div
+                            className={[
+                              "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                              isToday ? "bg-blue-500 text-white" : "text-zinc-700",
+                              inMonth ? "" : "opacity-60",
+                            ].join(" ")}
+                          >
                             {day.getDate()}
                           </div>
                         </div>
@@ -262,8 +268,8 @@ export default function MonthCalendar({ events }: Props) {
                   })}
                 </div>
 
-                <div className="pointer-events-none absolute inset-0 pt-7">
-                  <div className="flex flex-col gap-1 px-1">
+                <div className="pointer-events-none absolute inset-0 pt-8">
+                  <div className="flex flex-col gap-1.5">
                     {lanes.slice(0, 4).map((lane, laneIndex) => (
                       <div
                         key={laneIndex}
@@ -275,7 +281,7 @@ export default function MonthCalendar({ events }: Props) {
                       </div>
                     ))}
                     {lanes.length > 4 ? (
-                      <div className="px-2 text-[11px] text-zinc-600">
+                      <div className="px-2 text-[11px] font-medium text-zinc-500">
                         +{lanes.length - 4} more
                       </div>
                     ) : null}
