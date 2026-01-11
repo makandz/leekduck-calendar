@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { eventTypeToSwatch } from "../lib/colors";
 import {
   addDays,
@@ -261,6 +261,7 @@ export default function MonthCalendar({ events }: Props) {
   );
 
   const today = useMemo(() => toDayStart(new Date()), []);
+  const mobileDayRefs = useRef<Map<string, HTMLElement>>(new Map());
   const monthStart = useMemo(() => startOfMonth(monthCursor), [monthCursor]);
   const monthEnd = useMemo(() => endOfMonth(monthCursor), [monthCursor]);
 
@@ -330,6 +331,23 @@ export default function MonthCalendar({ events }: Props) {
     return map;
   }, [visibleEvents, monthDays, monthStart, monthEnd]);
 
+  useEffect(() => {
+    const isMobile = window.matchMedia("(max-width: 639px)").matches;
+    if (!isMobile) return;
+
+    const isCurrentMonth =
+      monthCursor.getFullYear() === today.getFullYear() &&
+      monthCursor.getMonth() === today.getMonth();
+    if (!isCurrentMonth) return;
+
+    const el = mobileDayRefs.current.get(formatDayKey(today));
+    if (!el) return;
+
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [monthCursor, today]);
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-t from-sky-100 via-white to-white text-zinc-900">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_1px_1px,rgba(59,130,246,0.10)_1px,transparent_0)] [background-size:18px_18px]" />
@@ -390,8 +408,13 @@ export default function MonthCalendar({ events }: Props) {
               return (
                 <section
                   key={formatDayKey(day)}
+                  ref={(el) => {
+                    const key = formatDayKey(day);
+                    if (el) mobileDayRefs.current.set(key, el);
+                    else mobileDayRefs.current.delete(key);
+                  }}
                   className={[
-                    "rounded-2xl p-4 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
+                    "scroll-mt-24 rounded-2xl p-4 shadow-sm shadow-zinc-900/5 ring-1 ring-zinc-200/70",
                     isToday
                       ? "bg-sky-50 ring-2 ring-sky-500/50 shadow-sm shadow-sky-600/10"
                       : isPast
@@ -425,9 +448,7 @@ export default function MonthCalendar({ events }: Props) {
                               : "text-zinc-600",
                         ].join(" ")}
                       >
-                        {bucket.length
-                          ? `${bucket.length} ${bucket.length === 1 ? "event" : "events"}`
-                          : "No events"}
+                        {bucket.length ? "" : "No events"}
                       </div>
                     </div>
                     {isToday ? (
